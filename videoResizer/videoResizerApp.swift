@@ -6,6 +6,9 @@
 //
 
 import SwiftUI
+import PhotosUI
+import AVFoundation
+import CoreImage
 
 @main
 struct videoResizerApp: App {
