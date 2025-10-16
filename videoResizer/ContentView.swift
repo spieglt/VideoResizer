@@ -138,7 +138,7 @@ struct ContentView: View {
                     .background(Color.blue.opacity(0.05))
                     .cornerRadius(12)
                     .padding(.horizontal)
-                    .onChange(of: reductionPercentage) { _ in
+                    .onChange(of: reductionPercentage) {
                         updatePredictedFileSize()
                     }
                 }
@@ -224,7 +224,7 @@ struct ContentView: View {
             }
             .navigationBarHidden(true)
         }
-        .onChange(of: selectedVideo) { newValue in
+        .onChange(of: selectedVideo) {
             Task {
                 await loadSelectedVideo()
             }
@@ -264,7 +264,7 @@ struct ContentView: View {
     private func loadVideoInfo() {
         guard let videoURL = videoURL else { return }
         
-        let asset = AVAsset(url: videoURL)
+        let asset = AVURLAsset(url: videoURL)
         
         Task {
             do {
@@ -335,122 +335,122 @@ struct ContentView: View {
         let newHeight = videoInfo.resolution.height * scaleFactor
         let targetSize = CGSize(width: newWidth, height: newHeight)
         
-        resizeVideo(inputURL: inputURL, outputURL: outputURL, targetSize: targetSize) { progress in
-            DispatchQueue.main.async {
-                self.processingProgress = progress
-            }
-        } completion: { success, error in
-            DispatchQueue.main.async {
-                self.isProcessing = false
-                
-                if success {
-                    self.outputURL = outputURL
-                } else {
-                    self.alertMessage = error?.localizedDescription ?? "Failed to resize video"
-                    self.showAlert = true
+        Task {
+            await resizeVideo(inputURL: inputURL, outputURL: outputURL, targetSize: targetSize) { progress in
+                DispatchQueue.main.async {
+                    self.processingProgress = progress
+                }
+            } completion: { success, error in
+                DispatchQueue.main.async {
+                    self.isProcessing = false
+                    
+                    if success {
+                        self.outputURL = outputURL
+                    } else {
+                        self.alertMessage = error?.localizedDescription ?? "Failed to resize video"
+                        self.showAlert = true
+                    }
                 }
             }
         }
     }
     
     private func resizeVideo(inputURL: URL, outputURL: URL, targetSize: CGSize,
-                           progressHandler: @escaping (Double) -> Void,
-                           completion: @escaping (Bool, Error?) -> Void) {
+                             progressHandler: @escaping (Double) -> Void,
+                             completion: @escaping (Bool, Error?) -> Void) async {
         
-        let asset = AVAsset(url: inputURL)
-        guard let videoTrack = asset.tracks(withMediaType: .video).first else {
-            completion(false, NSError(domain: "VideoError", code: 1,
-                                    userInfo: [NSLocalizedDescriptionKey: "No video track found"]))
-            return
-        }
+        let asset = AVURLAsset(url: inputURL)
         
-        // Create video composition instead of mutable composition for better compatibility
-        let videoComposition = AVMutableVideoComposition()
-        videoComposition.frameDuration = CMTime(value: 1, timescale: 30)
-        videoComposition.renderSize = targetSize
-        
-        // Get video properties
-        let naturalSize = videoTrack.naturalSize
-        let preferredTransform = videoTrack.preferredTransform
-        
-        // Calculate the display size after applying transform
-        let transformedSize = naturalSize.applying(preferredTransform)
-        let videoWidth = abs(transformedSize.width)
-        let videoHeight = abs(transformedSize.height)
-        
-        // Calculate scale factors
-        let scaleX = targetSize.width / videoWidth
-        let scaleY = targetSize.height / videoHeight
-        let scale = min(scaleX, scaleY) // Use uniform scaling to maintain aspect ratio
-        
-        // Create the final transform
-        var finalTransform = preferredTransform
-        
-        // Apply scaling
-        finalTransform = finalTransform.concatenating(CGAffineTransform(scaleX: scale, y: scale))
-        
-        // Center the video in the render size
-        let scaledWidth = videoWidth * scale
-        let scaledHeight = videoHeight * scale
-        let translateX = (targetSize.width - scaledWidth) / 2
-        let translateY = (targetSize.height - scaledHeight) / 2
-        
-        finalTransform = finalTransform.concatenating(CGAffineTransform(translationX: translateX, y: translateY))
-        
-        // Create layer instruction
-        let layerInstruction = AVMutableVideoCompositionLayerInstruction(assetTrack: videoTrack)
-        layerInstruction.setTransform(finalTransform, at: .zero)
-        
-        // Create composition instruction
-        let instruction = AVMutableVideoCompositionInstruction()
-        instruction.timeRange = CMTimeRange(start: .zero, duration: asset.duration)
-        instruction.layerInstructions = [layerInstruction]
-        instruction.backgroundColor = UIColor.black.cgColor
-        
-        videoComposition.instructions = [instruction]
-        
-        // Try different export presets for compatibility
-        var exportPreset = AVAssetExportPresetMediumQuality
-        
-        // Check if HEVC is supported
-        if AVAssetExportSession.exportPresets(compatibleWith: asset).contains(AVAssetExportPresetHEVCHighestQuality) {
-            exportPreset = AVAssetExportPresetHEVCHighestQuality
-        } else if AVAssetExportSession.exportPresets(compatibleWith: asset).contains(AVAssetExportPreset1920x1080) {
-            exportPreset = AVAssetExportPreset1920x1080
-        }
-        
-        guard let exporter = AVAssetExportSession(asset: asset, presetName: exportPreset) else {
-            completion(false, NSError(domain: "VideoError", code: 3,
-                                    userInfo: [NSLocalizedDescriptionKey: "Failed to create export session"]))
-            return
-        }
-        
-        exporter.outputURL = outputURL
-        exporter.outputFileType = AVFileType.mp4
-        exporter.videoComposition = videoComposition
-        exporter.shouldOptimizeForNetworkUse = true
-        
-        // Progress monitoring
-        let timer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { _ in
-            progressHandler(Double(exporter.progress))
-        }
-        
-        exporter.exportAsynchronously {
-            timer.invalidate()
-            
-            switch exporter.status {
-            case .completed:
-                completion(true, nil)
-            case .failed:
-                print("Export failed: \(String(describing: exporter.error))")
-                completion(false, exporter.error)
-            case .cancelled:
-                completion(false, NSError(domain: "VideoError", code: 4,
-                                        userInfo: [NSLocalizedDescriptionKey: "Export cancelled"]))
-            default:
-                completion(false, NSError(domain: "VideoError", code: 5,
-                                        userInfo: [NSLocalizedDescriptionKey: "Unknown export error"]))
+        do {
+            let tracks = try await asset.loadTracks(withMediaType: .video)
+            guard let videoTrack = tracks.first else {
+                completion(false, NSError(domain: "VideoError", code: 1,
+                                        userInfo: [NSLocalizedDescriptionKey: "No video track found"]))
+                return
             }
+            
+            // Create video composition
+            let videoComposition = AVMutableVideoComposition()
+            videoComposition.frameDuration = CMTime(value: 1, timescale: 30)
+            videoComposition.renderSize = targetSize
+            
+            // Get video properties
+            let naturalSize = try await videoTrack.load(.naturalSize)
+            let preferredTransform = try await videoTrack.load(.preferredTransform)
+            
+            // Calculate the display size after applying transform
+            let transformedSize = naturalSize.applying(preferredTransform)
+            let videoWidth = abs(transformedSize.width)
+            let videoHeight = abs(transformedSize.height)
+            
+            // Calculate scale factors
+            let scaleX = targetSize.width / videoWidth
+            let scaleY = targetSize.height / videoHeight
+            let scale = min(scaleX, scaleY) // Use uniform scaling to maintain aspect ratio
+            
+            // Create the final transform
+            var finalTransform = preferredTransform
+            
+            // Apply scaling
+            finalTransform = finalTransform.concatenating(CGAffineTransform(scaleX: scale, y: scale))
+            
+            // Center the video in the render size
+            let scaledWidth = videoWidth * scale
+            let scaledHeight = videoHeight * scale
+            let translateX = (targetSize.width - scaledWidth) / 2
+            let translateY = (targetSize.height - scaledHeight) / 2
+            
+            finalTransform = finalTransform.concatenating(CGAffineTransform(translationX: translateX, y: translateY))
+            
+            // Create layer instruction
+            let layerInstruction = AVMutableVideoCompositionLayerInstruction(assetTrack: videoTrack)
+            layerInstruction.setTransform(finalTransform, at: .zero)
+            
+            // Create composition instruction
+            let instruction = AVMutableVideoCompositionInstruction()
+            let duration = try await asset.load(.duration)
+            instruction.timeRange = CMTimeRange(start: .zero, duration: duration)
+            instruction.layerInstructions = [layerInstruction]
+            instruction.backgroundColor = UIColor.black.cgColor
+            
+            videoComposition.instructions = [instruction]
+            
+            // Use MediumQuality preset which allows custom video composition
+            guard let exporter = AVAssetExportSession(asset: asset, presetName: AVAssetExportPresetMediumQuality) else {
+                completion(false, NSError(domain: "VideoError", code: 3,
+                                        userInfo: [NSLocalizedDescriptionKey: "Failed to create export session"]))
+                return
+            }
+            
+            exporter.outputURL = outputURL
+            exporter.outputFileType = AVFileType.mp4
+            exporter.videoComposition = videoComposition
+            exporter.shouldOptimizeForNetworkUse = true
+            
+            // Start a task to monitor progress
+            let progressTask = Task {
+                while !Task.isCancelled {
+                    let progress = exporter.progress
+                    await MainActor.run {
+                        progressHandler(Double(progress))
+                    }
+                    try? await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
+                }
+            }
+            
+            // Export the video using modern async API
+            do {
+                try await exporter.export(to: outputURL, as: .mp4)
+                progressTask.cancel()
+                completion(true, nil)
+            } catch {
+                progressTask.cancel()
+                print("Export failed: \(error)")
+                completion(false, error)
+            }
+            
+        } catch {
+            completion(false, error)
         }
     }
     
@@ -509,3 +509,8 @@ struct ContentView_Previews: PreviewProvider {
         ContentView()
     }
 }
+
+
+// TODO:
+// batch processing
+// display progress indicator while video loads
