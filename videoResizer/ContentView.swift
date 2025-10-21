@@ -4,22 +4,29 @@ import AVFoundation
 import UniformTypeIdentifiers
 
 struct ContentView: View {
-    @State private var selectedVideo: PhotosPickerItem?
-    @State private var videoURL: URL?
-    @State private var isProcessing = false
-    @State private var processingProgress: Double = 0.0
-    @State private var outputURL: URL?
+    @State private var selectedVideos: [PhotosPickerItem] = []
+    @State private var videoItems: [VideoItem] = []
+    @State private var isLoadingVideos = false
     @State private var showAlert = false
     @State private var alertMessage = ""
     @State private var reductionPercentage: Double = 50.0
-    @State private var originalVideoInfo: VideoInfo?
-    @State private var predictedFileSize: String = ""
+    @State private var predictedTotalSize: String = ""
+    
+    struct VideoItem: Identifiable {
+        let id = UUID()
+        let url: URL
+        let info: VideoInfo
+        var isProcessing: Bool = false
+        var processingProgress: Double = 0.0
+        var outputURL: URL?
+    }
     
     struct VideoInfo {
         let duration: Double
         let fileSize: Int64
         let resolution: CGSize
         let bitrate: Double
+        let filename: String
     }
     
     var body: some View {
@@ -36,7 +43,7 @@ struct ContentView: View {
                         .font(.largeTitle)
                         .fontWeight(.bold)
                     
-                    Text("Select a video and choose how much to reduce its size")
+                    Text("Select videos and choose how much to reduce their size")
                         .font(.subheadline)
                         .foregroundColor(.secondary)
                         .multilineTextAlignment(.center)
@@ -44,18 +51,17 @@ struct ContentView: View {
                 }
                 .padding(.top)
                 
-                Spacer()
-                
                 // Video Picker Button
                 PhotosPicker(
-                    selection: $selectedVideo,
+                    selection: $selectedVideos,
+                    maxSelectionCount: 10,
                     matching: .videos,
                     photoLibrary: .shared()
                 ) {
                     HStack {
                         Image(systemName: "video.circle.fill")
                             .font(.title2)
-                        Text("Select Video from Camera Roll")
+                        Text("Select Videos from Camera Roll")
                             .fontWeight(.medium)
                     }
                     .foregroundColor(.white)
@@ -65,119 +71,16 @@ struct ContentView: View {
                     .cornerRadius(12)
                 }
                 .padding(.horizontal)
-                .disabled(isProcessing)
+                .disabled(isLoadingVideos || videoItems.contains(where: { $0.isProcessing }))
                 
-                // Selected Video Info
-                if let videoInfo = originalVideoInfo {
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text("Original Video:")
-                            .font(.headline)
-                        
-                        HStack {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text("Size: \(ByteCountFormatter.string(fromByteCount: videoInfo.fileSize, countStyle: .file))")
-                                    .font(.caption)
-                                Text("Resolution: \(Int(videoInfo.resolution.width))×\(Int(videoInfo.resolution.height))")
-                                    .font(.caption)
-                                Text("Duration: \(String(format: "%.1f", videoInfo.duration))s")
-                                    .font(.caption)
-                            }
-                            Spacer()
-                        }
-                        .foregroundColor(.secondary)
-                    }
-                    .padding()
-                    .background(Color.gray.opacity(0.1))
-                    .cornerRadius(8)
-                    .padding(.horizontal)
-                }
-                
-                // Size Reduction Slider
-                if originalVideoInfo != nil {
-                    VStack(alignment: .leading, spacing: 12) {
-                        HStack {
-                            Text("Size Reduction")
-                                .font(.headline)
-                            Spacer()
-                            Text("\(Int(reductionPercentage))%")
-                                .font(.headline)
-                                .foregroundColor(.blue)
-                        }
-                        
-                        Slider(value: $reductionPercentage, in: 10...90, step: 5) {
-                            Text("Reduction Percentage")
-                        }
-                        .accentColor(.blue)
-                        
-                        HStack {
-                            Text("10%")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                            Spacer()
-                            Text("90%")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
-                        
-                        // Predicted file size
-                        if !predictedFileSize.isEmpty {
-                            HStack {
-                                Text("Predicted new size:")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                                Spacer()
-                                Text(predictedFileSize)
-                                    .font(.caption)
-                                    .fontWeight(.medium)
-                                    .foregroundColor(.green)
-                            }
-                            .padding(.top, 4)
-                        }
-                    }
-                    .padding()
-                    .background(Color.blue.opacity(0.05))
-                    .cornerRadius(12)
-                    .padding(.horizontal)
-                    .onChange(of: reductionPercentage) {
-                        updatePredictedFileSize()
-                    }
-                }
-                
-                // Process Button
-                if videoURL != nil && !isProcessing {
-                    Button(action: processVideo) {
-                        HStack {
-                            Image(systemName: "arrow.down.circle.fill")
-                                .font(.title2)
-                            Text("Resize Video")
-                                .fontWeight(.medium)
-                        }
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(Color.green)
-                        .cornerRadius(12)
-                    }
-                    .padding(.horizontal)
-                }
-                
-                // Processing Progress
-                if isProcessing {
+                // Loading indicator
+                if isLoadingVideos {
                     VStack(spacing: 12) {
-                        ProgressView(value: processingProgress, total: 1.0)
-                            .progressViewStyle(LinearProgressViewStyle())
+                        ProgressView()
                             .scaleEffect(1.2)
-                        
-                        Text("Resizing video... \(Int(processingProgress * 100))%")
+                        Text("Loading videos...")
                             .font(.caption)
                             .foregroundColor(.secondary)
-                        
-                        Button("Cancel") {
-                            isProcessing = false
-                            processingProgress = 0.0
-                        }
-                        .font(.caption)
-                        .foregroundColor(.red)
                     }
                     .padding()
                     .background(Color.gray.opacity(0.1))
@@ -185,48 +88,136 @@ struct ContentView: View {
                     .padding(.horizontal)
                 }
                 
-                // Output Video Info
-                if let outputURL = outputURL {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("✅ Video Resized Successfully!")
-                            .font(.headline)
-                            .foregroundColor(.green)
-                        
-                        if let fileSize = getFileSize(url: outputURL),
-                           let originalSize = originalVideoInfo?.fileSize {
-                            let actualReduction = (1.0 - Double(getFileSizeBytes(url: outputURL)) / Double(originalSize)) * 100
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text("New Size: \(fileSize)")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                                Text("Actual Reduction: \(String(format: "%.1f", actualReduction))%")
-                                    .font(.caption)
-                                    .foregroundColor(.green)
+                ScrollView {
+                    VStack(spacing: 16) {
+                        // Selected Videos Info
+                        if !videoItems.isEmpty && !isLoadingVideos {
+                            VStack(alignment: .leading, spacing: 12) {
+                                Text("Selected Videos (\(videoItems.count)):")
+                                    .font(.headline)
+                                    .padding(.horizontal)
+                                
+                                ForEach(videoItems) { item in
+                                    VideoItemView(item: item)
+                                }
+                                
+                                // Total size info
+                                let totalSize = videoItems.reduce(0) { $0 + $1.info.fileSize }
+                                HStack {
+                                    Text("Total Size:")
+                                        .font(.subheadline)
+                                        .fontWeight(.medium)
+                                    Spacer()
+                                    Text(ByteCountFormatter.string(fromByteCount: totalSize, countStyle: .file))
+                                        .font(.subheadline)
+                                        .foregroundColor(.secondary)
+                                }
+                                .padding(.horizontal)
+                                .padding(.top, 4)
                             }
                         }
                         
-                        Button("Save to Photos") {
-                            saveVideoToPhotos(url: outputURL)
+                        // Size Reduction Slider
+                        if !videoItems.isEmpty && !isLoadingVideos {
+                            VStack(alignment: .leading, spacing: 12) {
+                                HStack {
+                                    Text("Size Reduction")
+                                        .font(.headline)
+                                    Spacer()
+                                    Text("\(Int(reductionPercentage))%")
+                                        .font(.headline)
+                                        .foregroundColor(.blue)
+                                }
+                                
+                                Slider(value: $reductionPercentage, in: 10...90, step: 5) {
+                                    Text("Reduction Percentage")
+                                }
+                                .accentColor(.blue)
+                                
+                                HStack {
+                                    Text("10%")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                    Spacer()
+                                    Text("90%")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
+                                
+                                // Predicted total size
+                                if !predictedTotalSize.isEmpty {
+                                    HStack {
+                                        Text("Predicted total size:")
+                                            .font(.caption)
+                                            .foregroundColor(.secondary)
+                                        Spacer()
+                                        Text(predictedTotalSize)
+                                            .font(.caption)
+                                            .fontWeight(.medium)
+                                            .foregroundColor(.green)
+                                    }
+                                    .padding(.top, 4)
+                                }
+                            }
+                            .padding()
+                            .background(Color.blue.opacity(0.05))
+                            .cornerRadius(12)
+                            .padding(.horizontal)
+                            .onChange(of: reductionPercentage) {
+                                updatePredictedFileSize()
+                            }
                         }
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 8)
-                        .background(Color.blue)
-                        .cornerRadius(8)
+                        
+                        // Process Button
+                        if !videoItems.isEmpty && !isLoadingVideos && !videoItems.contains(where: { $0.isProcessing }) {
+                            Button(action: processAllVideos) {
+                                HStack {
+                                    Image(systemName: "arrow.down.circle.fill")
+                                        .font(.title2)
+                                    Text("Resize All Videos")
+                                        .fontWeight(.medium)
+                                }
+                                .foregroundColor(.white)
+                                .frame(maxWidth: .infinity)
+                                .padding()
+                                .background(Color.green)
+                                .cornerRadius(12)
+                            }
+                            .padding(.horizontal)
+                        }
+                        
+                        // Completed videos section
+                        let completedVideos = videoItems.filter { $0.outputURL != nil }
+                        if !completedVideos.isEmpty {
+                            VStack(alignment: .leading, spacing: 12) {
+                                Text("✅ Completed (\(completedVideos.count)):")
+                                    .font(.headline)
+                                    .padding(.horizontal)
+                                
+                                ForEach(completedVideos) { item in
+                                    CompletedVideoView(item: item, originalSize: item.info.fileSize)
+                                }
+                                
+                                Button("Save All to Photos") {
+                                    saveAllVideosToPhotos()
+                                }
+                                .foregroundColor(.white)
+                                .frame(maxWidth: .infinity)
+                                .padding()
+                                .background(Color.blue)
+                                .cornerRadius(12)
+                                .padding(.horizontal)
+                            }
+                            .padding(.vertical)
+                        }
                     }
-                    .padding()
-                    .background(Color.green.opacity(0.1))
-                    .cornerRadius(8)
-                    .padding(.horizontal)
                 }
-                
-                Spacer()
             }
             .navigationBarHidden(true)
         }
-        .onChange(of: selectedVideo) {
+        .onChange(of: selectedVideos) {
             Task {
-                await loadSelectedVideo()
+                await loadSelectedVideos()
             }
         }
         .alert("Video Resizer", isPresented: $showAlert) {
@@ -236,119 +227,127 @@ struct ContentView: View {
         }
     }
     
-    private func loadSelectedVideo() async {
-        guard let selectedVideo = selectedVideo else { return }
+    private func loadSelectedVideos() async {
+        guard !selectedVideos.isEmpty else { return }
         
-        do {
-            if let data = try await selectedVideo.loadTransferable(type: Data.self) {
-                let tempURL = FileManager.default.temporaryDirectory
-                    .appendingPathComponent(UUID().uuidString)
-                    .appendingPathExtension("mov")
-                
-                try data.write(to: tempURL)
-                
-                await MainActor.run {
-                    self.videoURL = tempURL
-                    self.outputURL = nil
-                    self.loadVideoInfo()
+        await MainActor.run {
+            isLoadingVideos = true
+            videoItems.removeAll()
+        }
+        
+        var loadedItems: [VideoItem] = []
+        
+        for selectedVideo in selectedVideos {
+            do {
+                if let data = try await selectedVideo.loadTransferable(type: Data.self) {
+                    let tempURL = FileManager.default.temporaryDirectory
+                        .appendingPathComponent(UUID().uuidString)
+                        .appendingPathExtension("mov")
+                    
+                    try data.write(to: tempURL)
+                    
+                    if let videoInfo = await loadVideoInfo(url: tempURL) {
+                        let item = VideoItem(url: tempURL, info: videoInfo)
+                        loadedItems.append(item)
+                    }
                 }
+            } catch {
+                print("Failed to load video: \(error.localizedDescription)")
             }
-        } catch {
-            await MainActor.run {
-                alertMessage = "Failed to load video: \(error.localizedDescription)"
-                showAlert = true
-            }
+        }
+        
+        await MainActor.run {
+            self.videoItems = loadedItems
+            self.isLoadingVideos = false
+            self.updatePredictedFileSize()
         }
     }
     
-    private func loadVideoInfo() {
-        guard let videoURL = videoURL else { return }
+    private func loadVideoInfo(url: URL) async -> VideoInfo? {
+        let asset = AVURLAsset(url: url)
         
-        let asset = AVURLAsset(url: videoURL)
-        
-        Task {
-            do {
-                let duration = try await asset.load(.duration)
-                let tracks = try await asset.loadTracks(withMediaType: .video)
-                
-                guard let videoTrack = tracks.first else { return }
-                
-                let naturalSize = try await videoTrack.load(.naturalSize)
-                let preferredTransform = try await videoTrack.load(.preferredTransform)
-                
-                // Get the actual display size considering transform
-                let size = naturalSize.applying(preferredTransform)
-                let correctedSize = CGSize(width: abs(size.width), height: abs(size.height))
-                
-                // Estimate bitrate
-                let fileSize = getFileSizeBytes(url: videoURL)
-                let durationInSeconds = CMTimeGetSeconds(duration)
-                let bitrate = Double(fileSize * 8) / durationInSeconds // bits per second
-                
-                let videoInfo = VideoInfo(
-                    duration: durationInSeconds,
-                    fileSize: fileSize,
-                    resolution: correctedSize,
-                    bitrate: bitrate
-                )
-                
-                await MainActor.run {
-                    self.originalVideoInfo = videoInfo
-                    self.updatePredictedFileSize()
-                }
-            } catch {
-                await MainActor.run {
-                    alertMessage = "Failed to analyze video: \(error.localizedDescription)"
-                    showAlert = true
-                }
-            }
+        do {
+            let duration = try await asset.load(.duration)
+            let tracks = try await asset.loadTracks(withMediaType: .video)
+            
+            guard let videoTrack = tracks.first else { return nil }
+            
+            let naturalSize = try await videoTrack.load(.naturalSize)
+            let preferredTransform = try await videoTrack.load(.preferredTransform)
+            
+            // Get the actual display size considering transform
+            let size = naturalSize.applying(preferredTransform)
+            let correctedSize = CGSize(width: abs(size.width), height: abs(size.height))
+            
+            // Estimate bitrate
+            let fileSize = getFileSizeBytes(url: url)
+            let durationInSeconds = CMTimeGetSeconds(duration)
+            let bitrate = Double(fileSize * 8) / durationInSeconds // bits per second
+            
+            return VideoInfo(
+                duration: durationInSeconds,
+                fileSize: fileSize,
+                resolution: correctedSize,
+                bitrate: bitrate,
+                filename: url.lastPathComponent
+            )
+        } catch {
+            print("Failed to analyze video: \(error.localizedDescription)")
+            return nil
         }
     }
     
     private func updatePredictedFileSize() {
-        guard let videoInfo = originalVideoInfo else { return }
+        guard !videoItems.isEmpty else { return }
         
-        // Calculate new dimensions based on reduction percentage
         let scaleFactor = sqrt((100.0 - reductionPercentage) / 100.0)
-        let newWidth = videoInfo.resolution.width * scaleFactor
-        let newHeight = videoInfo.resolution.height * scaleFactor
-        let pixelReduction = (newWidth * newHeight) / (videoInfo.resolution.width * videoInfo.resolution.height)
         
-        // Estimate new file size (this is approximate)
-        let estimatedSize = Int64(Double(videoInfo.fileSize) * pixelReduction * 0.8) // 0.8 factor for compression efficiency
-        predictedFileSize = ByteCountFormatter.string(fromByteCount: estimatedSize, countStyle: .file)
+        var totalEstimatedSize: Int64 = 0
+        for item in videoItems {
+            let newWidth = item.info.resolution.width * scaleFactor
+            let newHeight = item.info.resolution.height * scaleFactor
+            let pixelReduction = (newWidth * newHeight) / (item.info.resolution.width * item.info.resolution.height)
+            
+            let estimatedSize = Int64(Double(item.info.fileSize) * pixelReduction * 0.8)
+            totalEstimatedSize += estimatedSize
+        }
+        
+        predictedTotalSize = ByteCountFormatter.string(fromByteCount: totalEstimatedSize, countStyle: .file)
     }
     
-    private func processVideo() {
-        guard let inputURL = videoURL, let videoInfo = originalVideoInfo else { return }
-        
-        isProcessing = true
-        processingProgress = 0.0
-        
-        let outputURL = FileManager.default.temporaryDirectory
-            .appendingPathComponent("resized_\(UUID().uuidString)")
-            .appendingPathExtension("mp4")
-        
-        // Calculate new size based on reduction percentage
-        let scaleFactor = sqrt((100.0 - reductionPercentage) / 100.0)
-        let newWidth = videoInfo.resolution.width * scaleFactor
-        let newHeight = videoInfo.resolution.height * scaleFactor
-        let targetSize = CGSize(width: newWidth, height: newHeight)
-        
+    private func processAllVideos() {
         Task {
-            await resizeVideo(inputURL: inputURL, outputURL: outputURL, targetSize: targetSize) { progress in
-                DispatchQueue.main.async {
-                    self.processingProgress = progress
+            let scaleFactor = sqrt((100.0 - reductionPercentage) / 100.0)
+            
+            for index in videoItems.indices {
+                await MainActor.run {
+                    videoItems[index].isProcessing = true
+                    videoItems[index].processingProgress = 0.0
                 }
-            } completion: { success, error in
-                DispatchQueue.main.async {
-                    self.isProcessing = false
-                    
-                    if success {
-                        self.outputURL = outputURL
-                    } else {
-                        self.alertMessage = error?.localizedDescription ?? "Failed to resize video"
-                        self.showAlert = true
+                
+                let item = videoItems[index]
+                let newWidth = item.info.resolution.width * scaleFactor
+                let newHeight = item.info.resolution.height * scaleFactor
+                let targetSize = CGSize(width: newWidth, height: newHeight)
+                
+                let outputURL = FileManager.default.temporaryDirectory
+                    .appendingPathComponent("resized_\(UUID().uuidString)")
+                    .appendingPathExtension("mp4")
+                
+                await resizeVideo(inputURL: item.url, outputURL: outputURL, targetSize: targetSize) { progress in
+                    Task { @MainActor in
+                        videoItems[index].processingProgress = progress
+                    }
+                } completion: { success, error in
+                    Task { @MainActor in
+                        videoItems[index].isProcessing = false
+                        
+                        if success {
+                            videoItems[index].outputURL = outputURL
+                        } else {
+                            alertMessage = "Failed to resize \(item.info.filename): \(error?.localizedDescription ?? "Unknown error")"
+                            showAlert = true
+                        }
                     }
                 }
             }
@@ -386,12 +385,10 @@ struct ContentView: View {
             // Calculate scale factors
             let scaleX = targetSize.width / videoWidth
             let scaleY = targetSize.height / videoHeight
-            let scale = min(scaleX, scaleY) // Use uniform scaling to maintain aspect ratio
+            let scale = min(scaleX, scaleY)
             
             // Create the final transform
             var finalTransform = preferredTransform
-            
-            // Apply scaling
             finalTransform = finalTransform.concatenating(CGAffineTransform(scaleX: scale, y: scale))
             
             // Center the video in the render size
@@ -454,7 +451,7 @@ struct ContentView: View {
         }
     }
     
-    private func saveVideoToPhotos(url: URL) {
+    private func saveAllVideosToPhotos() {
         PHPhotoLibrary.requestAuthorization { status in
             guard status == .authorized else {
                 DispatchQueue.main.async {
@@ -464,24 +461,35 @@ struct ContentView: View {
                 return
             }
             
-            PHPhotoLibrary.shared().performChanges {
-                PHAssetChangeRequest.creationRequestForAssetFromVideo(atFileURL: url)
-            } completionHandler: { success, error in
-                DispatchQueue.main.async {
+            var successCount = 0
+            var errorCount = 0
+            let group = DispatchGroup()
+            
+            for item in videoItems {
+                guard let outputURL = item.outputURL else { continue }
+                
+                group.enter()
+                PHPhotoLibrary.shared().performChanges {
+                    PHAssetChangeRequest.creationRequestForAssetFromVideo(atFileURL: outputURL)
+                } completionHandler: { success, error in
                     if success {
-                        self.alertMessage = "Video saved to Photos successfully!"
+                        successCount += 1
                     } else {
-                        self.alertMessage = "Failed to save video: \(error?.localizedDescription ?? "Unknown error")"
+                        errorCount += 1
                     }
-                    self.showAlert = true
+                    group.leave()
                 }
             }
+            
+            group.notify(queue: .main) {
+                if errorCount == 0 {
+                    self.alertMessage = "All \(successCount) videos saved to Photos successfully!"
+                } else {
+                    self.alertMessage = "Saved \(successCount) videos. Failed to save \(errorCount) videos."
+                }
+                self.showAlert = true
+            }
         }
-    }
-    
-    private func getFileSize(url: URL) -> String? {
-        let fileSize = getFileSizeBytes(url: url)
-        return ByteCountFormatter.string(fromByteCount: fileSize, countStyle: .file)
     }
     
     private func getFileSizeBytes(url: URL) -> Int64 {
@@ -495,6 +503,97 @@ struct ContentView: View {
     }
 }
 
+struct VideoItemView: View {
+    let item: ContentView.VideoItem
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(item.info.filename)
+                        .font(.caption)
+                        .fontWeight(.medium)
+                        .lineLimit(1)
+                    
+                    Text("Size: \(ByteCountFormatter.string(fromByteCount: item.info.fileSize, countStyle: .file))")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                    
+                    Text("Resolution: \(Int(item.info.resolution.width))×\(Int(item.info.resolution.height))")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                }
+                
+                Spacer()
+                
+                if item.isProcessing {
+                    VStack(spacing: 4) {
+                        ProgressView(value: item.processingProgress, total: 1.0)
+                            .frame(width: 60)
+                        Text("\(Int(item.processingProgress * 100))%")
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
+                    }
+                }
+            }
+        }
+        .padding()
+        .background(Color.gray.opacity(0.1))
+        .cornerRadius(8)
+        .padding(.horizontal)
+    }
+}
+
+struct CompletedVideoView: View {
+    let item: ContentView.VideoItem
+    let originalSize: Int64
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(item.info.filename)
+                .font(.caption)
+                .fontWeight(.medium)
+                .lineLimit(1)
+            
+            if let outputURL = item.outputURL {
+                let newSize = getFileSizeBytes(url: outputURL)
+                let reduction = (1.0 - Double(newSize) / Double(originalSize)) * 100
+                
+                HStack {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Original: \(ByteCountFormatter.string(fromByteCount: originalSize, countStyle: .file))")
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
+                        Text("New: \(ByteCountFormatter.string(fromByteCount: newSize, countStyle: .file))")
+                            .font(.caption2)
+                            .foregroundColor(.green)
+                    }
+                    
+                    Spacer()
+                    
+                    Text("↓ \(String(format: "%.1f", reduction))%")
+                        .font(.caption)
+                        .fontWeight(.medium)
+                        .foregroundColor(.green)
+                }
+            }
+        }
+        .padding()
+        .background(Color.green.opacity(0.1))
+        .cornerRadius(8)
+        .padding(.horizontal)
+    }
+    
+    private func getFileSizeBytes(url: URL) -> Int64 {
+        do {
+            let resources = try url.resourceValues(forKeys: [.fileSizeKey])
+            return Int64(resources.fileSize ?? 0)
+        } catch {
+            return 0
+        }
+    }
+}
+
 struct VideoResizerApp: App {
     var body: some Scene {
         WindowGroup {
@@ -503,14 +602,8 @@ struct VideoResizerApp: App {
     }
 }
 
-// For SwiftUI Preview
 struct ContentView_Previews: PreviewProvider {
     static var previews: some View {
         ContentView()
     }
 }
-
-
-// TODO:
-// batch processing
-// display progress indicator while video loads
