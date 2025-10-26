@@ -1,0 +1,1 @@
+Video Resizer does not collect data nor generate any network traffic. All processing is done on your local device.
