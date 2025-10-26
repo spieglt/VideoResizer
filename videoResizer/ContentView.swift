@@ -11,6 +11,7 @@ struct ContentView: View {
     @State private var alertMessage = ""
     @State private var reductionPercentage: Double = 50.0
     @State private var predictedTotalSize: String = ""
+    @State private var showAbout = false
     
     struct VideoItem: Identifiable {
         let id = UUID()
@@ -35,6 +36,18 @@ struct ContentView: View {
                 
                 // Header
                 VStack {
+                    HStack {
+                        Spacer()
+                        Button(action: {
+                            showAbout = true
+                        }) {
+                            Image(systemName: "info.circle")
+                                .font(.title3)
+                                .foregroundColor(.blue)
+                        }
+                        .padding(.trailing)
+                    }
+                    
                     Image(systemName: "video.badge.waveform")
                         .font(.system(size: 60))
                         .foregroundColor(.blue)
@@ -54,7 +67,7 @@ struct ContentView: View {
                 // Video Picker Button
                 PhotosPicker(
                     selection: $selectedVideos,
-                    maxSelectionCount: 10,
+                    // maxSelectionCount: 10,
                     matching: .videos,
                     photoLibrary: .shared()
                 ) {
@@ -174,7 +187,7 @@ struct ContentView: View {
                                 HStack {
                                     Image(systemName: "arrow.down.circle.fill")
                                         .font(.title2)
-                                    Text("Resize All Videos")
+                                    Text(videoItems.count == 1 ? "Resize Video" : "Resize All Videos")
                                         .fontWeight(.medium)
                                 }
                                 .foregroundColor(.white)
@@ -198,7 +211,7 @@ struct ContentView: View {
                                     CompletedVideoView(item: item, originalSize: item.info.fileSize)
                                 }
                                 
-                                Button("Save All to Photos") {
+                                Button(completedVideos.count == 1 ? "Save to Photos" : "Save All to Photos") {
                                     saveAllVideosToPhotos()
                                 }
                                 .foregroundColor(.white)
@@ -224,6 +237,9 @@ struct ContentView: View {
             Button("OK", role: .cancel) { }
         } message: {
             Text(alertMessage)
+        }
+        .sheet(isPresented: $showAbout) {
+            AboutView()
         }
     }
     
@@ -499,6 +515,116 @@ struct ContentView: View {
         } catch {
             print("Error getting file size: \(error)")
             return 0
+        }
+    }
+}
+
+struct AboutView: View {
+    @Environment(\.dismiss) var dismiss
+    
+    var body: some View {
+        NavigationView {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20) {
+                    
+                    VStack {
+                        Image(systemName: "video.badge.waveform")
+                            .font(.system(size: 80))
+                            .foregroundColor(.blue)
+                            .padding(.bottom, 8)
+                        
+                        Text("Video Resizer")
+                            .font(.title)
+                            .fontWeight(.bold)
+                        
+                        Text("Version 1.0")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical)
+                    
+                    VStack(alignment: .leading, spacing: 16) {
+                        Text("About")
+                            .font(.headline)
+                        
+                        Text("Video Resizer decreases the resolution and file size of videos. Useful for freeing up storage space and meeting upload limitations. Copyright 2025, Theron Spiegl. theron@spiegl.dev, https://github.com/spieglt/videoresizer")
+                            .font(.body)
+                            .foregroundColor(.secondary)
+                        
+                        Divider()
+                        
+                        Text("Features")
+                            .font(.headline)
+                        
+                        VStack(alignment: .leading, spacing: 12) {
+                            FeatureRow(icon: "video.fill", text: "Process multiple videos at once")
+                            FeatureRow(icon: "slider.horizontal.3", text: "Adjust reduction percentage (10-90%)")
+                            FeatureRow(icon: "eye.fill", text: "Preview predicted file sizes")
+                            FeatureRow(icon: "chart.bar.fill", text: "See actual size reduction results")
+                            FeatureRow(icon: "square.and.arrow.down", text: "Save directly to Photos")
+                            FeatureRow(icon: "play.fill", text: "Maintains video quality and orientation")
+                        }
+                        
+                        Divider()
+                        
+                        Text("How to Use")
+                            .font(.headline)
+                        
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("1. Select one or more videos from your camera roll")
+                            Text("2. Adjust the size reduction percentage using the slider")
+                            Text("3. Preview the predicted file sizes")
+                            Text("4. Tap 'Resize Video(s)' to process")
+                            Text("5. Save the resized videos back to your Photos")
+                        }
+                        .font(.body)
+                        .foregroundColor(.secondary)
+                        
+                        Divider()
+                        
+                        Text("Tips")
+                            .font(.headline)
+                        
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("• Higher reduction percentages = smaller file sizes but may reduce quality")
+                            Text("• 50% reduction is a good balance for most videos")
+                            Text("• The app maintains aspect ratio and video orientation")
+                            Text("• Original videos are never modified")
+                        }
+                        .font(.body)
+                        .foregroundColor(.secondary)
+                    }
+                    .padding(.horizontal)
+                    
+                    Spacer(minLength: 40)
+                }
+            }
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Done") {
+                        dismiss()
+                    }
+                }
+            }
+        }
+    }
+}
+
+struct FeatureRow: View {
+    let icon: String
+    let text: String
+    
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: icon)
+                .font(.body)
+                .foregroundColor(.blue)
+                .frame(width: 24)
+            Text(text)
+                .font(.body)
+                .foregroundColor(.secondary)
         }
     }
 }
