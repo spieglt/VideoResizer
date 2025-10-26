@@ -7,3 +7,6 @@ This is an iOS app to resize videos so you can save space on your phone or uploa
 - No ads
 - No in-app purchases
 - No tracking or data collection
+
+
+<img src="pics/1.PNG" width="240px" style="margin:10px;"><img src="pics/2.PNG" width="240px" style="margin:10px;"><img src="pics/3.PNG" width="240px" style="margin:10px;">
