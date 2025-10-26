@@ -24,9 +24,9 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		91AB2D172E36DA180088F450 /* videoResizer.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = videoResizer.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		91AB2D242E36DA180088F450 /* videoResizerTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = videoResizerTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		91AB2D2E2E36DA180088F450 /* videoResizerUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = videoResizerUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		91AB2D172E36DA180088F450 /* Video Resizer.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Video Resizer.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		91AB2D242E36DA180088F450 /* Video ResizerTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Video ResizerTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		91AB2D2E2E36DA180088F450 /* Video ResizerUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Video ResizerUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -85,9 +85,9 @@
 		91AB2D182E36DA180088F450 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				91AB2D172E36DA180088F450 /* videoResizer.app */,
-				91AB2D242E36DA180088F450 /* videoResizerTests.xctest */,
-				91AB2D2E2E36DA180088F450 /* videoResizerUITests.xctest */,
+				91AB2D172E36DA180088F450 /* Video Resizer.app */,
+				91AB2D242E36DA180088F450 /* Video ResizerTests.xctest */,
+				91AB2D2E2E36DA180088F450 /* Video ResizerUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -95,9 +95,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		91AB2D162E36DA180088F450 /* videoResizer */ = {
+		91AB2D162E36DA180088F450 /* Video Resizer */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 91AB2D382E36DA180088F450 /* Build configuration list for PBXNativeTarget "videoResizer" */;
+			buildConfigurationList = 91AB2D382E36DA180088F450 /* Build configuration list for PBXNativeTarget "Video Resizer" */;
 			buildPhases = (
 				91AB2D132E36DA180088F450 /* Sources */,
 				91AB2D142E36DA180088F450 /* Frameworks */,
@@ -110,16 +110,16 @@
 			fileSystemSynchronizedGroups = (
 				91AB2D192E36DA180088F450 /* videoResizer */,
 			);
-			name = videoResizer;
+			name = "Video Resizer";
 			packageProductDependencies = (
 			);
 			productName = videoResizer;
-			productReference = 91AB2D172E36DA180088F450 /* videoResizer.app */;
+			productReference = 91AB2D172E36DA180088F450 /* Video Resizer.app */;
 			productType = "com.apple.product-type.application";
 		};
-		91AB2D232E36DA180088F450 /* videoResizerTests */ = {
+		91AB2D232E36DA180088F450 /* Video ResizerTests */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 91AB2D3B2E36DA180088F450 /* Build configuration list for PBXNativeTarget "videoResizerTests" */;
+			buildConfigurationList = 91AB2D3B2E36DA180088F450 /* Build configuration list for PBXNativeTarget "Video ResizerTests" */;
 			buildPhases = (
 				91AB2D202E36DA180088F450 /* Sources */,
 				91AB2D212E36DA180088F450 /* Frameworks */,
@@ -133,16 +133,16 @@
 			fileSystemSynchronizedGroups = (
 				91AB2D272E36DA180088F450 /* videoResizerTests */,
 			);
-			name = videoResizerTests;
+			name = "Video ResizerTests";
 			packageProductDependencies = (
 			);
 			productName = videoResizerTests;
-			productReference = 91AB2D242E36DA180088F450 /* videoResizerTests.xctest */;
+			productReference = 91AB2D242E36DA180088F450 /* Video ResizerTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
-		91AB2D2D2E36DA180088F450 /* videoResizerUITests */ = {
+		91AB2D2D2E36DA180088F450 /* Video ResizerUITests */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 91AB2D3E2E36DA180088F450 /* Build configuration list for PBXNativeTarget "videoResizerUITests" */;
+			buildConfigurationList = 91AB2D3E2E36DA180088F450 /* Build configuration list for PBXNativeTarget "Video ResizerUITests" */;
 			buildPhases = (
 				91AB2D2A2E36DA180088F450 /* Sources */,
 				91AB2D2B2E36DA180088F450 /* Frameworks */,
@@ -156,11 +156,11 @@
 			fileSystemSynchronizedGroups = (
 				91AB2D312E36DA180088F450 /* videoResizerUITests */,
 			);
-			name = videoResizerUITests;
+			name = "Video ResizerUITests";
 			packageProductDependencies = (
 			);
 			productName = videoResizerUITests;
-			productReference = 91AB2D2E2E36DA180088F450 /* videoResizerUITests.xctest */;
+			productReference = 91AB2D2E2E36DA180088F450 /* Video ResizerUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
 		};
 /* End PBXNativeTarget section */
@@ -186,7 +186,7 @@
 					};
 				};
 			};
-			buildConfigurationList = 91AB2D122E36DA180088F450 /* Build configuration list for PBXProject "videoResizer" */;
+			buildConfigurationList = 91AB2D122E36DA180088F450 /* Build configuration list for PBXProject "Video Resizer" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -200,9 +200,9 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				91AB2D162E36DA180088F450 /* videoResizer */,
-				91AB2D232E36DA180088F450 /* videoResizerTests */,
-				91AB2D2D2E36DA180088F450 /* videoResizerUITests */,
+				91AB2D162E36DA180088F450 /* Video Resizer */,
+				91AB2D232E36DA180088F450 /* Video ResizerTests */,
+				91AB2D2D2E36DA180088F450 /* Video ResizerUITests */,
 			);
 		};
 /* End PBXProject section */
@@ -258,12 +258,12 @@
 /* Begin PBXTargetDependency section */
 		91AB2D262E36DA180088F450 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = 91AB2D162E36DA180088F450 /* videoResizer */;
+			target = 91AB2D162E36DA180088F450 /* Video Resizer */;
 			targetProxy = 91AB2D252E36DA180088F450 /* PBXContainerItemProxy */;
 		};
 		91AB2D302E36DA180088F450 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = 91AB2D162E36DA180088F450 /* videoResizer */;
+			target = 91AB2D162E36DA180088F450 /* Video Resizer */;
 			targetProxy = 91AB2D2F2E36DA180088F450 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
@@ -400,6 +400,7 @@
 				DEVELOPMENT_TEAM = LL5P432GT8;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "Video Resizer";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Video Resizer requires access to the Photo Library (to resize the videos).";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -430,6 +431,7 @@
 				DEVELOPMENT_TEAM = LL5P432GT8;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "Video Resizer";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Video Resizer requires access to the Photo Library (to resize the videos).";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -465,7 +467,7 @@
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/videoResizer.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/videoResizer";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Video Resizer.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Video Resizer";
 			};
 			name = Debug;
 		};
@@ -484,7 +486,7 @@
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/videoResizer.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/videoResizer";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Video Resizer.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Video Resizer";
 			};
 			name = Release;
 		};
@@ -525,7 +527,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		91AB2D122E36DA180088F450 /* Build configuration list for PBXProject "videoResizer" */ = {
+		91AB2D122E36DA180088F450 /* Build configuration list for PBXProject "Video Resizer" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				91AB2D362E36DA180088F450 /* Debug */,
@@ -534,7 +536,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		91AB2D382E36DA180088F450 /* Build configuration list for PBXNativeTarget "videoResizer" */ = {
+		91AB2D382E36DA180088F450 /* Build configuration list for PBXNativeTarget "Video Resizer" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				91AB2D392E36DA180088F450 /* Debug */,
@@ -543,7 +545,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		91AB2D3B2E36DA180088F450 /* Build configuration list for PBXNativeTarget "videoResizerTests" */ = {
+		91AB2D3B2E36DA180088F450 /* Build configuration list for PBXNativeTarget "Video ResizerTests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				91AB2D3C2E36DA180088F450 /* Debug */,
@@ -552,7 +554,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		91AB2D3E2E36DA180088F450 /* Build configuration list for PBXNativeTarget "videoResizerUITests" */ = {
+		91AB2D3E2E36DA180088F450 /* Build configuration list for PBXNativeTarget "Video ResizerUITests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				91AB2D3F2E36DA180088F450 /* Debug */,
