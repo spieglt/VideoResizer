@@ -13,6 +13,9 @@ struct ContentView: View {
     @State private var predictedTotalSize: String = ""
     @State private var showAbout = false
     
+    // Track temporary files for cleanup
+    @State private var temporaryFiles: Set<URL> = []
+    
     struct VideoItem: Identifiable {
         let id = UUID()
         let url: URL
@@ -233,6 +236,12 @@ struct ContentView: View {
                 await loadSelectedVideos()
             }
         }
+        .onAppear {
+            cleanupTemporaryDirectory()
+        }
+        .onDisappear {
+            cleanupTemporaryFiles()
+        }
         .alert("Video Resizer", isPresented: $showAlert) {
             Button("OK", role: .cancel) { }
         } message: {
@@ -349,6 +358,10 @@ struct ContentView: View {
                 let outputURL = FileManager.default.temporaryDirectory
                     .appendingPathComponent("resized_\(UUID().uuidString)")
                     .appendingPathExtension("mp4")
+
+                Task { @MainActor in
+                    temporaryFiles.insert(outputURL)
+                }
                 
                 await resizeVideo(inputURL: item.url, outputURL: outputURL, targetSize: targetSize) { progress in
                     Task { @MainActor in
@@ -360,6 +373,8 @@ struct ContentView: View {
                         
                         if success {
                             videoItems[index].outputURL = outputURL
+                            // Delete the original input video after successful resize
+                            deleteTemporaryFile(item.url)
                         } else {
                             alertMessage = "Failed to resize \(item.info.filename): \(error?.localizedDescription ?? "Unknown error")"
                             showAlert = true
@@ -500,11 +515,54 @@ struct ContentView: View {
             group.notify(queue: .main) {
                 if errorCount == 0 {
                     self.alertMessage = "All \(successCount) videos saved to Photos successfully!"
+                    // Clean up resized videos after saving
+                    for item in self.videoItems {
+                        if let outputURL = item.outputURL {
+                            self.deleteTemporaryFile(outputURL)
+                        }
+                    }
                 } else {
                     self.alertMessage = "Saved \(successCount) videos. Failed to save \(errorCount) videos."
                 }
                 self.showAlert = true
             }
+        }
+    }
+    
+    private func deleteTemporaryFile(_ url: URL) {
+        do {
+            try FileManager.default.removeItem(at: url)
+            temporaryFiles.remove(url)
+        } catch {
+            print("Failed to delete temporary file: \(error.localizedDescription)")
+        }
+    }
+    
+    private func cleanupTemporaryFiles() {
+        for url in temporaryFiles {
+            try? FileManager.default.removeItem(at: url)
+        }
+        temporaryFiles.removeAll()
+    }
+    
+    private func cleanupTemporaryDirectory() {
+        let tempDir = FileManager.default.temporaryDirectory
+        do {
+            let contents = try FileManager.default.contentsOfDirectory(
+                at: tempDir,
+                includingPropertiesForKeys: nil,
+                options: []
+            )
+            
+            for url in contents {
+                // Only delete video files that our app created
+                let ext = url.pathExtension.lowercased()
+                if ext == "mov" || ext == "mp4" || ext == "m4v" {
+                    try? FileManager.default.removeItem(at: url)
+                }
+            }
+        } catch {
+            print("Failed to cleanup temporary directory: \(error.localizedDescription)")
         }
     }
     
