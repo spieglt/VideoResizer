@@ -31,6 +31,7 @@ struct ContentView: View {
         let resolution: CGSize
         let bitrate: Double
         let filename: String
+        let fps: Float
     }
     
     var body: some View {
@@ -173,6 +174,24 @@ struct ContentView: View {
                                             .foregroundColor(.green)
                                     }
                                     .padding(.top, 4)
+                                    
+                                    // Show new resolution preview
+                                    if let firstVideo = videoItems.first {
+                                        let scaleFactor = sqrt((100.0 - reductionPercentage) / 100.0)
+                                        let newWidth = Int(firstVideo.info.resolution.width * scaleFactor)
+                                        let newHeight = Int(firstVideo.info.resolution.height * scaleFactor)
+                                        
+                                        HStack {
+                                            Text(videoItems.count == 1 ? "New resolution:" : "Example resolution:")
+                                                .font(.caption)
+                                                .foregroundColor(.secondary)
+                                            Spacer()
+                                            Text("\(newWidth)×\(newHeight)")
+                                                .font(.caption)
+                                                .fontWeight(.medium)
+                                                .foregroundColor(.blue)
+                                        }
+                                    }
                                 }
                             }
                             .padding()
@@ -271,6 +290,10 @@ struct ContentView: View {
                     
                     try data.write(to: tempURL)
                     
+                    Task { @MainActor in
+                        temporaryFiles.insert(tempURL)
+                    }
+                    
                     if let videoInfo = await loadVideoInfo(url: tempURL) {
                         let item = VideoItem(url: tempURL, info: videoInfo)
                         loadedItems.append(item)
@@ -299,6 +322,7 @@ struct ContentView: View {
             
             let naturalSize = try await videoTrack.load(.naturalSize)
             let preferredTransform = try await videoTrack.load(.preferredTransform)
+            let nominalFrameRate = try await videoTrack.load(.nominalFrameRate)
             
             // Get the actual display size considering transform
             let size = naturalSize.applying(preferredTransform)
@@ -314,7 +338,8 @@ struct ContentView: View {
                 fileSize: fileSize,
                 resolution: correctedSize,
                 bitrate: bitrate,
-                filename: url.lastPathComponent
+                filename: url.lastPathComponent,
+                fps: nominalFrameRate
             )
         } catch {
             print("Failed to analyze video: \(error.localizedDescription)")
@@ -363,7 +388,7 @@ struct ContentView: View {
                     temporaryFiles.insert(outputURL)
                 }
                 
-                await resizeVideo(inputURL: item.url, outputURL: outputURL, targetSize: targetSize) { progress in
+                await resizeVideo(inputURL: item.url, outputURL: outputURL, targetSize: targetSize, fps: item.info.fps) { progress in
                     Task { @MainActor in
                         videoItems[index].processingProgress = progress
                     }
@@ -385,7 +410,7 @@ struct ContentView: View {
         }
     }
     
-    private func resizeVideo(inputURL: URL, outputURL: URL, targetSize: CGSize,
+    private func resizeVideo(inputURL: URL, outputURL: URL, targetSize: CGSize, fps: Float,
                              progressHandler: @escaping (Double) -> Void,
                              completion: @escaping (Bool, Error?) -> Void) async {
         
@@ -401,7 +426,8 @@ struct ContentView: View {
             
             // Create video composition
             let videoComposition = AVMutableVideoComposition()
-            videoComposition.frameDuration = CMTime(value: 1, timescale: 30)
+            // Use the original frame rate instead of hardcoding 30 fps
+            videoComposition.frameDuration = CMTime(value: 1, timescale: Int32(fps))
             videoComposition.renderSize = targetSize
             
             // Get video properties
@@ -704,6 +730,10 @@ struct VideoItemView: View {
                         .foregroundColor(.secondary)
                     
                     Text("Resolution: \(Int(item.info.resolution.width))×\(Int(item.info.resolution.height))")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                    
+                    Text("FPS: \(String(format: "%.0f", item.info.fps))")
                         .font(.caption2)
                         .foregroundColor(.secondary)
                 }
